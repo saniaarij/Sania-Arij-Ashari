@@ -1,0 +1,72 @@
+title: "Analisis Performa Angkat Barbel"
+author: "Sania Arij Ashari"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## **1. Memuat Data**
+```{r load-data}
+# Mengunduh dan membaca data
+url_train <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+url_test <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+train_data <- read.csv(url_train, na.strings = c("", "NA"))
+test_data <- read.csv(url_test, na.strings = c("", "NA"))
+```
+
+## **2. Pembersihan Data**
+```{r clean-data}
+# Menghapus kolom dengan banyak NA
+train_data <- train_data[, colSums(is.na(train_data)) == 0]
+test_data <- test_data[, colSums(is.na(test_data)) == 0]
+
+# Menghapus kolom yang tidak berguna (misalnya, indeks dan ID)
+train_data <- train_data[, -c(1:7)]
+test_data <- test_data[, -c(1:7)]
+```
+
+## **3. Eksplorasi Data**
+```{r explore-data}
+summary(train_data)
+str(train_data)
+```
+
+## **4. Membagi Data Latih & Validasi**
+```{r split-data}
+library(caret)
+set.seed(123)
+
+# Memisahkan data menjadi training dan validation set
+trainIndex <- createDataPartition(train_data$classe, p = 0.7, list = FALSE)
+train_set <- train_data[trainIndex, ]
+validation_set <- train_data[-trainIndex, ]
+```
+
+## **5. Melatih Model**
+```{r train-model}
+library(randomForest)
+set.seed(123)
+
+# Pastikan target (y) bertipe faktor
+train_set$classe <- as.factor(train_set$classe)
+validation_set$classe <- as.factor(validation_set$classe)
+
+# Melatih model Random Forest
+model_rf <- randomForest(classe ~ ., data = train_set, ntree = 100)
+print(model_rf)
+```
+
+## **6. Evaluasi Model**
+```{r evaluate-model}
+predictions <- predict(model_rf, validation_set)
+confusionMatrix(predictions, validation_set$classe)
+```
+
+## **7. Memprediksi Data Uji**
+```{r predict-test}
+test_predictions <- predict(model_rf, test_data)
+test_predictions
